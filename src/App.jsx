@@ -5,7 +5,6 @@ export default function App() {
   const now = () => new Date().toISOString();
 
   const [display, setDisplay] = useState("");
-
   const [history, setHistory] = useState(() => {
     try {
       const saved = localStorage.getItem("history");
@@ -19,7 +18,7 @@ export default function App() {
     return Number(localStorage.getItem("rate")) || 520;
   });
 
-  const [iva, setIva] = useState(13);
+  const [iva] = useState(13);
   const [showHistory, setShowHistory] = useState(false);
 
   // ======================
@@ -33,22 +32,25 @@ export default function App() {
     localStorage.setItem("rate", rate);
   }, [rate]);
 
+  // ======================
+  // TECLADO
+  // ======================
   useEffect(() => {
-  const handleKeyDown = (e) => {
-    if (e.key >= "0" && e.key <= "9") add(e.key);
-    else if (e.key === "+") add("+");
-    else if (e.key === "-") add("-");
-    else if (e.key === "*") add("×");
-    else if (e.key === "/") { e.preventDefault(); add("÷"); }
-    else if (e.key === ".") add(".");
-    else if (e.key === "Enter" || e.key === "=") calculate();
-    else if (e.key === "Backspace") setDisplay((prev) => prev.slice(0, -1));
-    else if (e.key === "Escape") clear();
-  };
+    const handleKeyDown = (e) => {
+      if (e.key >= "0" && e.key <= "9") add(e.key);
+      else if (e.key === "+") add("+");
+      else if (e.key === "-") add("-");
+      else if (e.key === "*") add("×");
+      else if (e.key === "/") { e.preventDefault(); add("÷"); }
+      else if (e.key === ".") add(".");
+      else if (e.key === "Enter" || e.key === "=") calculate();
+      else if (e.key === "Backspace") setDisplay((prev) => prev.slice(0, -1));
+      else if (e.key === "Escape") clear();
+    };
 
-  window.addEventListener("keydown", handleKeyDown);
-  return () => window.removeEventListener("keydown", handleKeyDown);
-}, [display]);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [display]);
 
   // ======================
   // CALCULADORA
@@ -59,12 +61,10 @@ export default function App() {
   const calculate = () => {
     try {
       const result = eval(display.replace(/÷/g, "/").replace(/×/g, "*"));
-
       setHistory((prev) => [
         ...prev,
         { texto: `${display} = ${result}`, fecha: now() }
       ]);
-
       setDisplay(String(result));
     } catch {
       setDisplay("Error");
@@ -78,38 +78,34 @@ export default function App() {
   const applyIVA = () => {
     const value = Number(display);
     const result = value + (value * iva) / 100;
-
     setHistory((prev) => [
       ...prev,
       { texto: `${value} + IVA(${iva}%) = ${result}`, fecha: now() }
     ]);
-
     setDisplay(String(result));
   };
 
   const usdToCrc = () => {
     const result = Number(display) * rate;
-
     setHistory((prev) => [
       ...prev,
       { texto: `$${display} → ₡${result}`, fecha: now() }
     ]);
-
     setDisplay(String(result));
   };
 
   const crcToUsd = () => {
     const result = Number(display) / rate;
-
     setHistory((prev) => [
       ...prev,
       { texto: `₡${display} → $${result.toFixed(2)}`, fecha: now() }
     ]);
-
     setDisplay(String(result.toFixed(2)));
   };
 
- 
+  // ======================
+  // HISTORIAL
+  // ======================
   const exportHistory = () => {
     if (!history.length) return;
 
@@ -119,33 +115,29 @@ export default function App() {
       historial: history
     };
 
-  
-
     const blob = new Blob([JSON.stringify(data, null, 2)], {
       type: "application/json"
     });
 
     const url = URL.createObjectURL(blob);
-
     const a = document.createElement("a");
     a.href = url;
     a.download = "historial-calculadora.json";
     a.click();
-
     URL.revokeObjectURL(url);
-
   };
 
   const clearHistory = () => {
     const confirmDelete = window.confirm("¿Estás seguro de que deseas borrar el historial? Esta acción no se puede deshacer.");
-
     if (!confirmDelete) return;
-  setHistory([]);
-  localStorage.removeItem("history");
-};
+    setHistory([]);
+    localStorage.removeItem("history");
+  };
 
   return (
     <div className="app">
+
+      {/* CALCULADORA */}
       <div className="calculator">
 
         <div className="screen">
@@ -170,7 +162,6 @@ export default function App() {
 
           <button onClick={() => add("0")}>0</button>
           <button onClick={() => add(".")}>.</button>
-
           <button onClick={calculate}>=</button>
           <button onClick={() => add("+")}>+</button>
 
@@ -182,60 +173,49 @@ export default function App() {
           <button onClick={applyIVA}>IVA</button>
           <button onClick={usdToCrc}>USD → CRC</button>
           <button onClick={crcToUsd}>CRC → USD</button>
-
-          {/* 🔥 NUEVO BOTÓN */}
-          <button onClick={exportHistory}>
-             Exportar Historial
-          </button>
-
-          <button onClick={clearHistory}>
-             Borrar Historial
-          </button>
+          <button onClick={exportHistory}> Exportar</button>
+          <button onClick={clearHistory}> Borrar</button>
         </div>
 
         <div className="config">
           <h3> Tipo de cambio</h3>
-
           <input
             type="number"
             value={rate}
             onChange={(e) => setRate(Number(e.target.value))}
           />
-
           <p>1 USD = ₡{rate}</p>
         </div>
 
-        
-
-        
-
       </div>
 
-      <button onClick={() => setShowHistory((p) => !p)}>
-           {showHistory ? "Ocultar historial" : "Ver historial"}
-        </button>
+      {/* BOTÓN FLOTANTE - FUERA DE LA CALCULADORA */}
+      <button
+        className="history-fab"
+        onClick={() => setShowHistory((p) => !p)}
+      >
+        Historial
+      </button>
 
-        {showHistory && (
-          <div className="modal">
-            <div className="modal-box">
-              <h3>Historial</h3>
+      {/* PANEL LATERAL - FUERA DE LA CALCULADORA */}
+      {showHistory && (
+        <div className="modal">
+          <h3>Historial</h3>
 
-              {history.length === 0 && <p>Sin registros</p>}
+          {history.length === 0 && <p>Sin registros</p>}
 
-              {history.map((item, i) => (
-                <p key={i}>
-                  {item.texto}
-                  <br />
-                  <small>{item.fecha}</small>
-                </p>
-              ))}
+          {history.map((item, i) => (
+            <p key={i}>
+              {item.texto}
+              <br />
+              <small>{item.fecha}</small>
+            </p>
+          ))}
 
-              <button onClick={() => setShowHistory(false)}>
-                Cerrar
-              </button>
-            </div>
-          </div>
-        )}
+          <button onClick={() => setShowHistory(false)}>Cerrar</button>
+        </div>
+      )}
+
     </div>
   );
 }
